@@ -6,6 +6,7 @@ Lab experiments covering the two halves of a typical data science workflow: nume
 |---|---|---|
 | 1 | Employee dataset analysis | [`Experiment-1/Experiment-1.ipynb`](Experiment-1/Experiment-1.ipynb) |
 | 2 | Basic text preprocessing | [`Experiment-2/Experiment-2.ipynb`](Experiment-2/Experiment-2.ipynb) |
+| 5 | Subword tokenization and POS tagging | [`Experiment-5/Experiment-5.ipynb`](Experiment-5/Experiment-5.ipynb) |
 
 ---
 
@@ -85,6 +86,68 @@ The first cell installs the dependencies (`nltk`, `spacy`, `en_core_web_sm`) and
 
 ---
 
+## Experiment 5: Subword Tokenization and POS Tagging
+
+**Input:** `Experiment-5/input_sub_word_data.txt`, a 947 word corpus about tokenization, BPE, and subword units. It spans 66 sentences and 365 unique lowercase word forms, and deliberately ends with a list of long rare words (`naturalization`, `internationalization`, `computationally`, `hydrokinetic`, and others) so that subword behaviour is visible.
+
+### Objective
+
+Where Experiment 2 stopped at word-level tokens, this one goes below the word: split text into subword units with BPE and SentencePiece, both with a pretrained model and with a model trained from the corpus itself, then tag parts of speech with spaCy and NLTK.
+
+Two sentences are used throughout so the four tokenizers can be compared on the same input: the first sentence of the corpus, and the rare word sentence near the end.
+
+### 5.1 Byte Pair Encoding
+
+**a. Pretrained.** GPT-2's tokenizer through `AutoTokenizer`, a 50,257 piece BPE vocabulary. The first sentence becomes 22 tokens, almost all whole words carrying the `Ġ` leading-space marker. The rare word sentence needs 44, splitting `internationalization` into `Ġinternational` and `ization`.
+
+**b. From scratch.** `learn_bpe` implements the algorithm directly. Every word starts as a character sequence with an `</w>` end-of-word marker, adjacent symbol pairs are counted across the whole corpus, the most frequent pair is merged, and the frequencies are recalculated. After 300 merges the learned vocabulary holds 278 symbols. The first merges are exactly the ones the corpus statistics predict: `e</w>`, `s</w>`, `en`, `in`, `d</w>`, `er`, then later `ing` and `ation`.
+
+`encode_word` applies the merges to new words in the order they were learned, so unseen words still decompose into known pieces:
+
+| Word | Learned segmentation |
+|---|---|
+| `naturalization` | `nat ur alization</w>` |
+| `internationalization` | `internation alization</w>` |
+| `computationally` | `comput ation ally</w>` |
+| `hydrokinetic` | `h y d r o k in e t ic </w>` |
+
+Merge count controls granularity directly, measured as average tokens per corpus word:
+
+| Merges | Tokens per word |
+|---|---|
+| 50 | 5.30 |
+| 100 | 4.50 |
+| 200 | 3.67 |
+| 300 | 3.11 |
+| 500 | 2.31 |
+
+Frequent words such as `subword` and `tokenization` collapse into single tokens, while `hydrokinetic`, which never appears in the training corpus in a reusable form, stays close to characters. That is the intended trade-off: a vocabulary of 278 symbols still covers words it has never seen.
+
+### 5.2 SentencePiece
+
+**a. Pretrained.** ALBERT's SentencePiece model, 30,000 pieces, using `▁` to mark word starts instead of GPT-2's `Ġ`. It matches GPT-2 at 22 tokens on the first sentence and needs 48 on the rare word sentence.
+
+**b. From scratch.** `SentencePieceTrainer.train` runs on the raw input file with `vocab_size=500` and `model_type='bpe'`. Unlike the hand-written implementation, SentencePiece works on raw bytes, so it keeps casing and punctuation and needs no pre-tokenization step. The same first sentence now takes 45 tokens rather than 22, because a 500 piece vocabulary trained on 947 words cannot afford whole-word entries for much beyond the most common terms: `Natural` becomes `▁N` + `atural`.
+
+### 5.3 POS tagging
+
+Both taggers run on `The young student is reading an interesting book in the library.` and print unique tokens with their tag and a description.
+
+- **spaCy** reports the coarse `pos_`, the fine-grained Penn `tag_`, and `spacy.explain(tag_)`.
+- **NLTK** uses `pos_tag` over `word_tokenize`, with descriptions loaded from the bundled `upenn_tagset` help data.
+
+They agree on every token. The one place their labels differ in kind is `is`: spaCy calls it `AUX` at the coarse level while both assign the same fine tag `VBZ`, since NLTK's Penn tagset has no separate auxiliary category.
+
+### 5.4 POS tagging with frequency
+
+spaCy runs over the whole corpus: 1,110 tokens, 408 unique token and tag combinations, printed with frequency and tag description. A second table aggregates by coarse tag and shows the profile of expository technical prose, nouns dominating at 298, then punctuation at 152, verbs at 130, and adjectives at 113.
+
+### Run it
+
+The first cell installs `transformers`, `sentencepiece`, `spacy`, and `en_core_web_sm`, and the second downloads the NLTK tokenizer, tagger, and tagset data. Run the notebook from the `Experiment-5/` folder so `input_sub_word_data.txt` resolves. The pretrained tokenizers are fetched from Hugging Face on first use, and the SentencePiece cell writes `sp_corpus.model` and `sp_corpus.vocab` next to the notebook.
+
+---
+
 ## Summary
 
-Experiment 1 demonstrates the standard pandas exploratory workflow: loading and cleaning data, grouping and aggregating, filtering with boolean masks, and visualizing distributions and relationships. Experiment 2 walks the canonical preprocessing chain, normalize, tokenize, filter, and comparing NLTK, spaCy, and hand-written tokenizers shows that libraries handle punctuation and sentence boundaries more precisely while plain Python makes the underlying logic explicit.
+Experiment 1 demonstrates the standard pandas exploratory workflow: loading and cleaning data, grouping and aggregating, filtering with boolean masks, and visualizing distributions and relationships. Experiment 2 walks the canonical preprocessing chain, normalize, tokenize, filter, and comparing NLTK, spaCy, and hand-written tokenizers shows that libraries handle punctuation and sentence boundaries more precisely while plain Python makes the underlying logic explicit. Experiment 5 continues that chain one level down: subword tokenization removes the unknown word problem that word-level tokenization runs into, and implementing BPE by hand next to GPT-2 and SentencePiece shows that the vocabulary is not designed but learned from corpus statistics, with merge count as the single dial between character-level and word-level behaviour. POS tagging then attaches the first layer of linguistic structure on top of those tokens.
