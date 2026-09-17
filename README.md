@@ -6,6 +6,8 @@ Lab experiments covering the two halves of a typical data science workflow: nume
 |---|---|---|
 | 1 | Employee dataset analysis | [`Experiment-1/Experiment-1.ipynb`](Experiment-1/Experiment-1.ipynb) |
 | 2 | Basic text preprocessing | [`Experiment-2/Experiment-2.ipynb`](Experiment-2/Experiment-2.ipynb) |
+| 3 | Stemming, lemmatization and regular expressions | [`Experiment-3/Experiment-3.ipynb`](Experiment-3/Experiment-3.ipynb) |
+| 4 | Term frequency, NER and TF-IDF | [`Experiment-4/Experiment-4.ipynb`](Experiment-4/Experiment-4.ipynb) |
 | 5 | Subword tokenization and POS tagging | [`Experiment-5/Experiment-5.ipynb`](Experiment-5/Experiment-5.ipynb) |
 
 ---
@@ -86,6 +88,66 @@ The first cell installs the dependencies (`nltk`, `spacy`, `en_core_web_sm`) and
 
 ---
 
+## Experiment 3: Stemming, Lemmatization and Regular Expressions
+
+**Inputs:** three data files in `Experiment-3/`: `3.1_stemming_data.txt` (8 words), `3.2_lemmatization_data.txt` (14 words), and `3.3_regex_data.txt`, a short workshop announcement laced with emails, URLs, phone numbers, hashtags and mentions.
+
+### Objective
+
+Reduce words to their root forms with the two standard normalization techniques, stemming and lemmatization, compare the two on the same kind of vocabulary, and extract structured entities from free text with regular expressions.
+
+### 3.1 Stemming
+
+The Porter stemmer runs over the 8-word list. Stemming is pure suffix stripping, and the output shows both what that buys and what it costs: `playing`, `played` and `plays` all collapse to `play` and `connected` and `connection` correctly share `connect`, but `studies` and `studying` both become `studi` and `computers` becomes `comput`, stems that are not English words at all.
+
+### 3.2 Lemmatization
+
+`WordNetLemmatizer` looks roots up in a dictionary, but it assumes every word is a noun unless told otherwise. The notebook tags each word with `nltk.pos_tag` first, maps the Penn tag to WordNet's four classes, and prints a table comparing the default noun-mode lemma against the POS-aware one:
+
+- With POS information, `running` and `studying` resolve to `run` and `study` (default mode leaves them untouched), and where the stemmer produced `studi`, the lemmatizer returns the dictionary form `study`.
+- Irregular forms resolve correctly: `went` to `go`, `mice` to `mouse`, `children` to `child`, and the comparative `better` to `well`.
+- The same table shows the technique's weak spot: each word is tagged in isolation, so `ran` and `ate` are mistaken for nouns and pass through unchanged. Lemmatization is only as good as the POS information it is given.
+
+### 3.3 Regular expression extraction
+
+Five patterns run over the announcement text and extract 2 emails, 3 URLs, 2 mobile numbers, 3 hashtags and 2 mentions. Two of the patterns need care to keep out of each other's way: the mention pattern uses a negative lookbehind so the `@gmail` inside `nlpworkshop@gmail.com` does not count as a mention, and URL matches are stripped of trailing punctuation because `\S+` cannot know that the final period of `www.python.org.` ends the sentence rather than the address.
+
+### Run it
+
+The first cell installs `nltk` and the second downloads WordNet and the POS tagger data. Run the notebook from the `Experiment-3/` folder so the three data files resolve.
+
+---
+
+## Experiment 4: Term Frequency, NER and TF-IDF
+
+**Inputs:** `Experiment-4/input_tf_ner_data.txt`, a 301-word history of NLP written to be dense with named entities (people, organizations, dates, places, money), plus three one-sentence documents defined inline for the TF-IDF part.
+
+### Objective
+
+Count term frequencies with a toolkit and again with nothing but string operations, extract named entities with spaCy, and then compute TF, DF, IDF and TF-IDF entirely from scratch across three documents.
+
+### 4.1 Term frequency and NER using toolkits
+
+**NER.** spaCy's `en_core_web_sm` finds 38 entities in the corpus and the notebook prints each with its label and `spacy.explain` description. The clean hits show what the model is for: `Alan Turing` and `Noam Chomsky` as PERSON, `one billion dollars` as MONEY, `June 2017` as DATE, `French` as NORP. The misses are just as instructive for a small model: `OpenAI` is labeled GPE and the book title `Syntactic Structures` becomes an ORG.
+
+**TF.** The corpus is tokenized with NLTK's `word_tokenize`, lowercased, filtered to alphanumeric tokens, and counted with `Counter`: 299 tokens, 196 unique terms, with `the` (17), `in` (14) and `a` (10) unsurprisingly on top. The full ranking is written to `4_1_tf.csv`.
+
+### 4.2 Term frequency without a toolkit
+
+The same corpus goes through plain string operations: lowercase, drop punctuation characters, `split()`, and count with a dict: 301 tokens, 198 unique terms, written to `4_2_tf.csv`. A comparison cell diffs the two rankings and finds exactly two disagreements, `gpt2` and `gpt3`. `word_tokenize` keeps `GPT-2` as a single token, which the `isalnum()` filter then discards, while the manual pipeline deletes the hyphen and produces `gpt2`. Same text, two defensible answers, which is why a TF pipeline has to document its tokenization.
+
+### 4.3 TF-IDF without a toolkit
+
+Three one-sentence documents about NLP, AI and machine learning are processed by hand: raw-count TF per document, DF across documents, IDF as log10(N/DF) with N = 3, and TF-IDF as their product. The 18-term vocabulary splits into exactly two IDF bands: terms in one document score 0.4771 and terms in two score 0.1761, and the notebook prints the full TF, DF, IDF and TF-IDF table for every document plus the top terms of each.
+
+The top terms are the distinguishing words: `field` for document 1, `helps`, `computers`, `understand` and `human` for document 2, `machine` and `learning` for document 3, while the shared NLP vocabulary (`natural`, `language`, `processing`, `artificial`, `intelligence`) sinks to the low band. The ranking also promotes `a` and `an` simply because each happens to be unique to one document, a reminder that TF-IDF measures distinctiveness across the collection, not importance within the language.
+
+### Run it
+
+The first cell installs `nltk` and `spacy` with `en_core_web_sm`, and the second downloads the NLTK tokenizer data. Run the notebook from the `Experiment-4/` folder so `input_tf_ner_data.txt` resolves; the two CSV files are written next to the notebook.
+
+---
+
 ## Experiment 5: Subword Tokenization and POS Tagging
 
 **Input:** `Experiment-5/input_sub_word_data.txt`, a 947 word corpus about tokenization, BPE, and subword units. It spans 66 sentences and 365 unique lowercase word forms, and deliberately ends with a list of long rare words (`naturalization`, `internationalization`, `computationally`, `hydrokinetic`, and others) so that subword behaviour is visible.
@@ -150,4 +212,4 @@ The first cell installs `transformers`, `sentencepiece`, `spacy`, and `en_core_w
 
 ## Summary
 
-Experiment 1 demonstrates the standard pandas exploratory workflow: loading and cleaning data, grouping and aggregating, filtering with boolean masks, and visualizing distributions and relationships. Experiment 2 walks the canonical preprocessing chain, normalize, tokenize, filter, and comparing NLTK, spaCy, and hand-written tokenizers shows that libraries handle punctuation and sentence boundaries more precisely while plain Python makes the underlying logic explicit. Experiment 5 continues that chain one level down: subword tokenization removes the unknown word problem that word-level tokenization runs into, and implementing BPE by hand next to GPT-2 and SentencePiece shows that the vocabulary is not designed but learned from corpus statistics, with merge count as the single dial between character-level and word-level behaviour. POS tagging then attaches the first layer of linguistic structure on top of those tokens.
+Experiment 1 demonstrates the standard pandas exploratory workflow: loading and cleaning data, grouping and aggregating, filtering with boolean masks, and visualizing distributions and relationships. Experiment 2 walks the canonical preprocessing chain, normalize, tokenize, filter, and comparing NLTK, spaCy, and hand-written tokenizers shows that libraries handle punctuation and sentence boundaries more precisely while plain Python makes the underlying logic explicit. Experiment 3 continues normalization below the surface form: stemming trades correctness for speed by chopping suffixes, lemmatization recovers true dictionary roots but only when it knows the part of speech, and regular expressions handle the entities that have structure rather than morphology. Experiment 4 turns tokens into numbers: term frequency computed with and without a toolkit agrees except where tokenization decisions differ, spaCy's NER shows both the reach and the limits of a small pretrained model, and the from-scratch TF-IDF makes the weighting formula concrete enough to see why shared words sink and distinctive words rise. Experiment 5 continues that chain one level down: subword tokenization removes the unknown word problem that word-level tokenization runs into, and implementing BPE by hand next to GPT-2 and SentencePiece shows that the vocabulary is not designed but learned from corpus statistics, with merge count as the single dial between character-level and word-level behaviour. POS tagging then attaches the first layer of linguistic structure on top of those tokens.
