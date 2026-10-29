@@ -9,6 +9,7 @@ Lab experiments covering the two halves of a typical data science workflow: nume
 | 3 | Stemming, lemmatization and regular expressions | [`Experiment-3/Experiment-3.ipynb`](Experiment-3/Experiment-3.ipynb) |
 | 4 | Term frequency, NER and TF-IDF | [`Experiment-4/Experiment-4.ipynb`](Experiment-4/Experiment-4.ipynb) |
 | 5 | Subword tokenization and POS tagging | [`Experiment-5/Experiment-5.ipynb`](Experiment-5/Experiment-5.ipynb) |
+| 6 | GloVe embeddings and N-gram language model | [`Experiment-6/Experiment-6.ipynb`](Experiment-6/Experiment-6.ipynb) |
 
 ---
 
@@ -207,6 +208,26 @@ spaCy runs over the whole corpus: 1,110 tokens, 408 unique token and tag combina
 ### Run it
 
 The first cell installs `transformers`, `sentencepiece`, `spacy`, and `en_core_web_sm`, and the second downloads the NLTK tokenizer, tagger, and tagset data. Run the notebook from the `Experiment-5/` folder so `input_sub_word_data.txt` resolves. The pretrained tokenizers are fetched from Hugging Face on first use, and the SentencePiece cell writes `sp_corpus.model` and `sp_corpus.vocab` next to the notebook.
+
+---
+
+## Experiment 6: GloVe Embeddings and N-gram Language Model
+
+**Inputs:** `Experiment-6/glove_corpus.txt` (24 short sentences about royalty, people, animals and science) for GloVe, and an 8 sentence NLP paragraph defined in the notebook for the N-gram model.
+
+### 6.1 GloVe
+
+**a. From scratch.** After removing a few stop words, the corpus has 61 unique words. A co-occurrence matrix is built with a window of 3, with each count weighted by 1/distance. 20 dimensional vectors are then trained with the GloVe weighted least squares loss and AdaGrad for 1000 epochs, and the loss falls from 3.54 to 0.004. The final embedding is `W + W_context`. The nearest words to `king` are `son`, `queen`, `wise`, `powerful` and `prince`, and `cat` pairs with `dog` and `man` with `woman`. With this little text, the neighbours mostly reflect which words share a sentence.
+
+**b. Pretrained.** `glove-wiki-gigaword-100` is loaded through `gensim.downloader` (400,000 words). The nearest words to `king` are `prince`, `queen`, `son`, `brother` and `monarch`, and `king - man + woman` returns `queen` (0.77).
+
+### 6.2 N-gram language model
+
+Every sentence is padded with `<s> <s>` and `</s>`, then unigram, bigram and trigram counts are taken (35 words, 54 bigrams, 61 trigrams). Probabilities use add-one smoothing. `predict_next_word` uses the trigram model when it has seen the last two words, and falls back to the bigram model otherwise. Some predictions: `natural language` gives `processing`, `deep learning is a` gives `branch` and then `part`, and `a language model predicts the` gives `next`. Greedy generation from `deep learning` produces `deep learning is a branch of artificial intelligence`. The perplexity of a sentence from the corpus is 14.4, against 36.2 for an unseen one.
+
+### Run it
+
+Run the notebook from the `Experiment-6/` folder. The pretrained GloVe vectors (128 MB) download on first use.
 
 ---
 
