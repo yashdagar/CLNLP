@@ -10,6 +10,7 @@ Lab experiments covering the two halves of a typical data science workflow: nume
 | 4 | Term frequency, NER and TF-IDF | [`Experiment-4/Experiment-4.ipynb`](Experiment-4/Experiment-4.ipynb) |
 | 5 | Subword tokenization and POS tagging | [`Experiment-5/Experiment-5.ipynb`](Experiment-5/Experiment-5.ipynb) |
 | 6 | GloVe embeddings and N-gram language model | [`Experiment-6/Experiment-6.ipynb`](Experiment-6/Experiment-6.ipynb) |
+| 7 | Sentiment analysis on IMDB reviews | [`Experiment-7/Experiment-7.ipynb`](Experiment-7/Experiment-7.ipynb) |
 
 ---
 
@@ -228,6 +229,36 @@ Every sentence is padded with `<s> <s>` and `</s>`, then unigram, bigram and tri
 ### Run it
 
 Run the notebook from the `Experiment-6/` folder. The pretrained GloVe vectors (128 MB) download on first use.
+
+---
+
+## Experiment 7: Sentiment Analysis on IMDB Movie Reviews
+
+**Dataset:** [IMDB 50k movie reviews](https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews), downloaded by the notebook from [Ankit152/IMDB-sentiment-analysis](https://github.com/Ankit152/IMDB-sentiment-analysis). A balanced chunk of 10,000 reviews is used (5,000 positive and 5,000 negative), split 8,000 train and 2,000 test.
+
+### Models
+
+- **Logistic Regression:** TF-IDF features (unigrams and bigrams, 50,000 features)
+- **LSTM:** 128 dimension embedding and one 128 unit LSTM layer, trained from scratch for 6 epochs
+- **Vanilla Transformer:** 2 encoder layers with 4 heads and learned position embeddings, mean pooled, trained from scratch for 6 epochs
+- **BERT:** `bert-base-uncased` fine-tuned for 3 epochs on 2,000 of the training reviews
+
+All four are tested on the same 2,000 reviews.
+
+### Results
+
+| Model | Accuracy | Precision | Recall | F1 |
+|---|---|---|---|---|
+| Logistic Regression | 0.8850 | 0.8738 | 0.9000 | 0.8867 |
+| LSTM | 0.7655 | 0.7465 | 0.8040 | 0.7742 |
+| Vanilla Transformer | 0.7950 | 0.8300 | 0.7420 | 0.7835 |
+| BERT | 0.9100 | 0.8846 | 0.9430 | 0.9129 |
+
+BERT is the best even with a quarter of the training data, and TF-IDF with Logistic Regression is a strong, very fast second. The two models trained from scratch overfit on 8,000 reviews: both pass 90% training accuracy but stay under 80% on the test set. The notebook prints a classification report and a confusion matrix for each model.
+
+### Run it
+
+A GPU is recommended for the BERT part. The dataset CSV downloads on first run and is not committed.
 
 ---
 
