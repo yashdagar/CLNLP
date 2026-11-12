@@ -1,2 +1,4 @@
 .DS_Store
 Experiment-7/IMDB-Dataset.csv
+Experiment-8/*.tar.bz2
+Experiment-8/*.jsonl

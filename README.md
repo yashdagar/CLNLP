@@ -11,6 +11,7 @@ Lab experiments covering the two halves of a typical data science workflow: nume
 | 5 | Subword tokenization and POS tagging | [`Experiment-5/Experiment-5.ipynb`](Experiment-5/Experiment-5.ipynb) |
 | 6 | GloVe embeddings and N-gram language model | [`Experiment-6/Experiment-6.ipynb`](Experiment-6/Experiment-6.ipynb) |
 | 7 | Sentiment analysis on IMDB reviews | [`Experiment-7/Experiment-7.ipynb`](Experiment-7/Experiment-7.ipynb) |
+| 8 | Abstractive summarization with mT5 and mBART | [`Experiment-8/Experiment-8.ipynb`](Experiment-8/Experiment-8.ipynb) |
 
 ---
 
@@ -259,6 +260,37 @@ BERT is the best even with a quarter of the training data, and TF-IDF with Logis
 ### Run it
 
 A GPU is recommended for the BERT part. The dataset CSV downloads on first run and is not committed.
+
+---
+
+## Experiment 8: Abstractive Text Summarization with mT5 and mBART
+
+**Dataset:** the Hindi part of [XL-Sum](https://huggingface.co/datasets/csebuetnlp/xlsum), BBC news articles with one or two sentence summaries. The notebook downloads the Hindi archive directly and uses 100 random articles from the 8,847 article test split. Articles average 482 words and reference summaries 27.
+
+### Models
+
+Fine-tuning mT5 or mBART-large does not fit on a laptop, so both models are checkpoints that are already fine-tuned on XL-Sum:
+
+- **mT5:** [`csebuetnlp/mT5_multilingual_XLSum`](https://huggingface.co/csebuetnlp/mT5_multilingual_XLSum), 582M parameters, beam search with 4 beams
+- **mBART:** [`mskayacioglu/mbart50-xlsum`](https://huggingface.co/mskayacioglu/mbart50-xlsum), 611M parameters, with source and target language forced to `hi_IN`
+
+### Evaluation
+
+ROUGE uses a whitespace tokenizer, because the default `rouge_score` tokenizer removes Devanagari characters and would score every summary as zero. The mBERT score is BERTScore with `bert-base-multilingual-cased`.
+
+| Metric | mT5 | mBART |
+|---|---|---|
+| ROUGE-1 | 0.5627 | 0.5621 |
+| ROUGE-2 | 0.3016 | 0.2748 |
+| ROUGE-L | 0.4219 | 0.3999 |
+| mBERT F1 | 0.7679 | 0.7558 |
+| Avg summary words | 18.7 | 23.9 |
+
+The two models tie on ROUGE-1, but mT5 is ahead on ROUGE-2, ROUGE-L and the mBERT score, and it wins on 59 of the 100 articles by ROUGE-L. Both models sometimes add details that are not in the article, which these overlap metrics do not penalise.
+
+### Run it
+
+Run the notebook from the `Experiment-8/` folder. The dataset archive (82 MB) and the two models (about 2.4 GB each) download on first run.
 
 ---
 
