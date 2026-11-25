@@ -13,6 +13,7 @@ Lab experiments covering the two halves of a typical data science workflow: nume
 | 7 | Sentiment analysis on IMDB reviews | [`Experiment-7/Experiment-7.ipynb`](Experiment-7/Experiment-7.ipynb) |
 | 8 | Abstractive summarization with mT5 and mBART | [`Experiment-8/Experiment-8.ipynb`](Experiment-8/Experiment-8.ipynb) |
 | 9 | Cyberbullying classification in Hinglish | [`Experiment-9/Experiment-9.ipynb`](Experiment-9/Experiment-9.ipynb) |
+| 10 | Low-resource English-Assamese translation | [`Experiment-10/Experiment-10.ipynb`](Experiment-10/Experiment-10.ipynb) |
 
 ---
 
@@ -339,6 +340,51 @@ The linear SVM is best on both dev and test. HingRoBERTa beats mBERT by 5.4 macr
 ### Run it
 
 Open the notebook in Colab, select a T4 GPU and run all cells. The dataset and models download on first run. It takes about 20 minutes.
+
+---
+
+## Experiment 10: Low-Resource Neural Machine Translation (English-Assamese)
+
+Mini project by Yash Dagar, Saksham Agrawal and Vanshika Gaiha.
+
+**Dataset:** [WMT 2026 Indic MT](https://www2.statmt.org/wmt26/indic-mt-task.html), Category I, English-Assamese training data, 54,000 sentence pairs. The official test references are not openly available, so the dev and test sets are held out from this file.
+
+### Preprocessing
+
+Unicode NFC, invisible characters removed, spaces before punctuation removed. Duplicates on either side are removed before splitting. Pairs are dropped when a side has fewer than 2 or more than 80 words, when the lengths differ by more than 3x, or when the script is wrong. Text is tokenized with the NLLB subword vocabulary.
+
+| Step | Pairs |
+|---|---|
+| Raw | 54,000 |
+| Duplicates removed | 47,458 |
+| Filtered | 47,005 |
+| Test / dev / available for training | 2,000 / 1,000 / 44,005 |
+| Used for training | 25,000 |
+
+### Models
+
+- **NLLB-600M zero-shot:** [`facebook/nllb-200-distilled-600M`](https://huggingface.co/facebook/nllb-200-distilled-600M)
+- **NLLB-1.3B zero-shot:** [`facebook/nllb-200-distilled-1.3B`](https://huggingface.co/facebook/nllb-200-distilled-1.3B)
+- **NLLB-600M fine-tuned:** 2 epochs per direction, AdamW at 1e-4 with warmup, batch size 16, mixed precision, embeddings frozen. About 23 minutes per direction on a T4.
+
+### Results
+
+Scores on the 2,000 held-out pairs. Higher is better for chrF++ and spBLEU, lower for TER.
+
+| Direction | Model | chrF++ | spBLEU | TER |
+|---|---|---|---|---|
+| English to Assamese | NLLB-600M zero-shot | 33.11 | 18.46 | 86.49 |
+| English to Assamese | NLLB-1.3B zero-shot | 35.18 | 21.33 | 81.82 |
+| English to Assamese | NLLB-600M fine-tuned | 39.71 | 25.86 | 77.84 |
+| Assamese to English | NLLB-600M zero-shot | 43.70 | 23.20 | 74.54 |
+| Assamese to English | NLLB-1.3B zero-shot | 48.43 | 29.49 | 68.18 |
+| Assamese to English | NLLB-600M fine-tuned | 49.16 | 30.52 | 64.30 |
+
+Fine-tuning improves chrF++ over the same zero-shot model by 6.58 (95% bootstrap interval 5.97 to 7.13) into Assamese and 5.46 (4.97 to 5.94) into English. It also beats the 1.3B model, by 4.55 (3.93 to 5.21) into Assamese but only 0.72 (0.18 to 1.31) into English. Some references in the data are misaligned or leave sentences out, and the fine-tuned model learns the style of this data, so part of the gain is adaptation to this dataset. Each fine-tune used one seed.
+
+### Run it
+
+Open the notebook in Colab, select a T4 GPU and run all cells. The dataset and models download on first run. It takes about 75 minutes.
 
 ---
 
