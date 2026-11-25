@@ -12,6 +12,7 @@ Lab experiments covering the two halves of a typical data science workflow: nume
 | 6 | GloVe embeddings and N-gram language model | [`Experiment-6/Experiment-6.ipynb`](Experiment-6/Experiment-6.ipynb) |
 | 7 | Sentiment analysis on IMDB reviews | [`Experiment-7/Experiment-7.ipynb`](Experiment-7/Experiment-7.ipynb) |
 | 8 | Abstractive summarization with mT5 and mBART | [`Experiment-8/Experiment-8.ipynb`](Experiment-8/Experiment-8.ipynb) |
+| 9 | Cyberbullying classification in Hinglish | [`Experiment-9/Experiment-9.ipynb`](Experiment-9/Experiment-9.ipynb) |
 
 ---
 
@@ -293,6 +294,51 @@ The two models tie on ROUGE-1, but mT5 is ahead on ROUGE-2, ROUGE-L and the mBER
 ### Run it
 
 Run the notebook from the `Experiment-8/` folder. The dataset archive (82 MB) and the two models (about 2.4 GB each) download on first run.
+
+---
+
+## Experiment 9: Multiclass Cyberbullying Classification in Hinglish
+
+Mini project by Yash Dagar, Saksham Agrawal and Vanshika Gaiha.
+
+**Dataset:** [MC-Hinglish1.0](https://huggingface.co/datasets/sahinurlaskar/MC-Hinglish1.0), code-mixed Hindi-English comments in seven classes (age, gender, religion, mockery, abusive, offensive, not cyberbullying), with an official split of 7,400 train and 1,000 test rows. The Kaggle news dataset was not used because its 30,000 rows hold only 16 distinct texts. The notebook outputs show a few abusive tweets from the dataset.
+
+### Preprocessing
+
+Unicode NFKC, lowercasing, placeholders for URLs and mentions, hashtag symbols removed, and letters repeated three or more times shortened to two. The test split is cleaned as text but no row is removed.
+
+| Step | Training rows |
+|---|---|
+| Raw | 7,400 |
+| Empty row and 97 comments over 100 words removed | 7,302 |
+| Duplicates removed | 7,274 |
+| Tweets that also occur in the test split removed | 7,243 |
+
+The remaining rows are split into 6,518 for fitting and 725 for dev. Hyperparameters and best epochs are chosen on dev.
+
+### Models
+
+- **Naive Bayes, Logistic Regression, Linear SVM:** TF-IDF on word 1-2 grams and character 2-5 grams
+- **BiLSTM:** 128-dimensional embeddings, 128 units per direction, max pooling
+- **mBERT:** [`google-bert/bert-base-multilingual-cased`](https://huggingface.co/google-bert/bert-base-multilingual-cased), fine-tuned
+- **HingRoBERTa:** [`l3cube-pune/hing-roberta`](https://huggingface.co/l3cube-pune/hing-roberta), fine-tuned with the same settings
+
+### Results
+
+| Model | Accuracy | Macro F1 | Weighted F1 | Dev macro F1 |
+|---|---|---|---|---|
+| Linear SVM | 0.737 | 0.719 | 0.729 | 0.850 |
+| Logistic Regression | 0.722 | 0.708 | 0.716 | 0.844 |
+| HingRoBERTa | 0.714 | 0.689 | 0.701 | 0.827 |
+| Naive Bayes | 0.710 | 0.687 | 0.696 | 0.797 |
+| mBERT | 0.651 | 0.636 | 0.645 | 0.801 |
+| BiLSTM | 0.620 | 0.609 | 0.618 | 0.723 |
+
+The linear SVM is best on both dev and test. HingRoBERTa beats mBERT by 5.4 macro F1 points. Mockery is the hardest class for every model (SVM F1 0.430), mostly confused with not cyberbullying and abusive. Dev scores are well above test scores, and the test tweets are shorter (median 8 words against 13). Each model was trained with one seed.
+
+### Run it
+
+Open the notebook in Colab, select a T4 GPU and run all cells. The dataset and models download on first run. It takes about 20 minutes.
 
 ---
 
